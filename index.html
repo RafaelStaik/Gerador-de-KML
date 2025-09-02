@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Rotas por Bairros</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="Rotas por bairro.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-content">
+                <div class="logo">
+                    <i class="fas fa-route logo-icon"></i>
+                    <div>
+                        <h1 style="margin: 0">Sistema de Rotas</h1>
+                        <p>Por Bairros</p>
+                    </div>
+                </div>
+                
+                <div class="upload-section">
+                    <h2><i class="fas fa-file-upload"></i> Upload de Dados</h2>
+                    <div class="form-group">
+                        <label for="excel-file"><i class="fas fa-file-excel"></i> Arquivo Excel:</label>
+                        <input type="file" id="excel-file" accept=".xlsx, .xls">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="geojson-file"><i class="fas fa-map"></i> GeoJSON de Bairros:</label>
+                        <input type="file" id="geojson-file" accept=".geojson,.json">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tipo-rota"><i class="fas fa-route"></i> Tipo de Rota:</label>
+                        <div class="tipo-rota">
+                            <div class="tipo-rota-btn active" id="btn-entrada">ENTRADA</div>
+                            <div class="tipo-rota-btn" id="btn-saida">SAÍDA</div>
+                        </div>
+                    </div>
+                    
+                    <div class="ponto-container active" id="ponto-destino">
+                        <label for="destino-final"><i class="fas fa-flag-checkered"></i> Destino Final:</label>
+                        <div class="coordinates-container">
+                            <div class="coordinate-input">
+                                <input type="text" id="destino-lat" placeholder="Latitude" value="-3.124488">
+                            </div>
+                            <div class="coordinate-input">
+                                <input type="text" id="destino-lng" placeholder="Longitude" value="-59.963292">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ponto-container" id="ponto-inicial">
+                        <label for="ponto-inicial"><i class="fas fa-flag"></i> Ponto Inicial:</label>
+                        <div class="coordinates-container">
+                            <div class="coordinate-input">
+                                <input type="text" id="inicial-lat" placeholder="Latitude" value="-3.124488">
+                            </div>
+                            <div class="coordinate-input">
+                                <input type="text" id="inicial-lng" placeholder="Longitude" value="-59.963292">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="unificar-section" style="display: none;">
+                        <h2 style="margin-top: 20px;"><i class="fas fa-link"></i> Unificar Bairros</h2>
+                        <div class="form-group">
+                            <label for="bairro-search">Pesquisar Bairro:</label>
+                            <input type="text" id="bairro-search" placeholder="Digite o nome do bairro...">
+                        </div>
+                        <div class="form-group">
+                            <label>Selecione Bairros:</label>
+                            <div id="bairro-select-container"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="unificacao-nome">Nome da Unificação:</label>
+                            <input type="text" id="unificacao-nome" placeholder="Ex: Rota Centro-Sul">
+                        </div>
+                        <button id="add-unificacao-btn" style="margin-bottom: 15px;">
+                            <i class="fas fa-plus"></i> Adicionar Unificação
+                        </button>
+                        <div id="unificacoes-list">
+                            </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="api-key"><i class="fas fa-key"></i> Chave da API:</label>
+                        <input type="text" id="api-key" value="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFhOTc0NGZlNGUxNTQ4MDhhMTc1MWFhODEzOGRmMDY0IiwiaCI6Im11cm11cjY0In0=">
+                    </div>
+                    
+                    <button id="process-btn">
+                        <i class="fas fa-cogs"></i> Processar Rotas
+                    </button>
+
+                    <button id="download-kml-btn" class="button-secondary" style="margin-top: 10px;" disabled>
+                        <i class="fas fa-file-archive"></i> Baixar KML (ZIP)
+                    </button>
+
+                    <button id="download-excel-btn" class="button-secondary" style="margin-top: 10px;" disabled>
+                        <i class="fas fa-file-excel"></i> Baixar Rota (Excel)
+                    </button>
+                    
+                    <div class="progress-bar">
+                        <div class="progress" id="progress-bar"></div>
+                    </div>
+                </div>
+                
+                <div class="results">
+                    <h2><i class="fas fa-map-marked-alt"></i> Bairros Processados</h2>
+                    <div class="bairros-list-container" id="bairros-list">
+                        </div>
+                </div>
+                
+                <div class="stats">
+                    <div id="total-colaboradores">0 colaboradores</div>
+                    <div id="total-bairros">0 bairros</div>
+                </div>
+                
+                <div class="status" id="status">
+                    <i class="fas fa-info-circle"></i> Aguardando upload de dados...
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <header>
+                <h1><i class="fas fa-map"></i> Gerador de Rotas</h1>
+                <div id="map-actions">
+                    <button id="reset-map" class="button-secondary">
+                        <i class="fas fa-sync"></i> Reiniciar Mapa
+                    </button>
+                    <button id="toggle-edit" class="button-secondary">
+                        <i class="fas fa-edit"></i> Mover Pontos
+                    </button>
+                </div>
+            </header>
+            <div id="map"></div>
+            
+            <div class="legend">
+                <h4><i class="fas fa-map-legend"></i> Legenda</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: green"></div>
+                    <span>Ponto Inicial/Destino</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #3498db"></div>
+                    <span>Paradas</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e74c3c"></div>
+                    <span>Bairros</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff7f0e"></div>
+                    <span>Rotas de Entrada</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2ca02c"></div>
+                    <span>Rotas de Saída</span>
+                </div>
+            </div>
+            
+            <div class="edit-message" id="edit-message">
+                <i class="fas fa-info-circle"></i> Modo de edição ativado: Clique e arraste para mover os pontos
+            </div>
+            
+            <div class="route-info" id="route-info">
+                <span class="close-btn" id="close-route-info">&times;</span>
+                <h3 id="route-title">Informações da Rota</h3>
+                <div id="route-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="Rotas por bairro.js"></script>
+</body>
+</html>
